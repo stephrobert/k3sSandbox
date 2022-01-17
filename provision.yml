@@ -1,0 +1,67 @@
+---
+- hosts: all
+  gather_facts: no
+  become: true
+  pre_tasks:
+  - name: Replace a localhost entry with our own | {{ inventory_hostname }}
+    lineinfile:
+      path: /etc/hosts
+      regexp: '^127\.0\.0\.1'
+      line: 127.0.0.1 localhost
+      owner: root
+      group: root
+      mode: '0644'
+  - name: Allow password authentication |{{ inventory_hostname }}
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: "^PasswordAuthentication"
+      line: "PasswordAuthentication yes"
+      state: present
+    notify: restart sshd
+  - name: Set authorized key took from file | {{ inventory_hostname }}
+    authorized_key:
+      user: vagrant
+      state: present
+      key: "{{ lookup('file', '/home/vagrant/.ssh/id_rsa.pub') }}"
+  - name: Add IP address of all hosts to all hosts | {{ inventory_hostname }}
+    lineinfile:
+      dest: /etc/hosts
+      regexp: '.*{{ item }}$'
+      line: "{{ hostvars[item].ansible_host }} {{ item }}"
+      state: present
+    when: hostvars[item].ansible_host is defined
+    with_items: "{{ groups.all }}"
+  - name: Add IP address of all hosts to all hosts | {{ inventory_hostname }}
+    vars:
+      ansible_python_interpreter: /usr/bin/python3
+    lineinfile:
+      dest: /etc/hosts
+      regexp: '.*{{ item }}$'
+      line: "{{ hostvars[item].ansible_host }} {{ item }}"
+      state: present
+    when: hostvars[item].ansible_host is defined
+    with_items: "{{ groups.all }}"
+    delegate_to: localhost
+    run_once: true
+  - name: Copy SSH key | {{ inventory_hostname }}
+    ansible.builtin.copy:
+      src: ~/.ssh/id_rsa
+      dest: /home/vagrant/.ssh/id_rsa
+      mode: 0600
+      owner: vagrant
+      group: vagrant
+  - name: Copy SSH config | {{ inventory_hostname }}
+    ansible.builtin.copy:
+      src: ssh-config
+      dest: /home/vagrant/.ssh/config
+      mode: 0600
+      owner: vagrant
+      group: vagrant
+  handlers:
+  - name: restart sshd
+    service:
+      name: sshd
+      state: restarted
+
+
+
