@@ -2,19 +2,20 @@
   gather_facts: no
   become: true
   tasks:
-  - name: Check k3s-agent service exist
-    ansible.builtin.service_facts:
-  - name: Get token
-    ansible.builtin.slurp:
-      src: /tmp/node-token
-    register: node_token
-    delegate_to: localhost
-    run_once: true
-  - name: debug
-    ansible.builtin.debug:
-      msg: "curl -sfL https://get.k3s.io |  K3S_TOKEN={{ node_token.content | b64decode | trim }} K3S_URL=https://{{ base_ip_str }}.10:6443 sh -"
-  - name: Install k3s
-    become: false
-    ansible.builtin.shell:
-      cmd: curl -sfL https://get.k3s.io |  K3S_TOKEN={{ node_token.content | b64decode | trim }} K3S_URL=https://{{ base_ip_str }}0:6443 sh -
-    when: services['k3s-agent.service'] is not defined
+    - name: Check k3s-agent service exist
+      ansible.builtin.service_facts:
+    - name: Get token
+      ansible.builtin.slurp:
+        src: /tmp/node-token
+      register: node_token
+      delegate_to: localhost
+      run_once: true
+      become: false
+    - name: Debug
+      ansible.builtin.debug:
+        msg: "curl -sfL https://get.k3s.io |  K3S_TOKEN={{ node_token.content | b64decode | trim }} K3S_URL=https://{{ base_ip_str }}.10:6443 sh -"
+    - name: Install k3s
+      become: false
+      ansible.builtin.shell:
+        cmd: curl -sfL https://get.k3s.io |  K3S_TOKEN={{ node_token.content | b64decode | trim }} K3S_URL=https://{{ base_ip_str }}0:6443 sh -
+      when: services['k3s-agent.service'] is not defined

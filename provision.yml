@@ -2,9 +2,11 @@
 - hosts: all
   gather_facts: no
   become: true
+  vars:
+    user: "{{ lookup('env','USER') }}"
   pre_tasks:
   - name: Replace a localhost entry with our own | {{ inventory_hostname }}
-    lineinfile:
+    ansible.builtin.lineinfile:
       path: /etc/hosts
       regexp: '^127\.0\.0\.1'
       line: 127.0.0.1 localhost
@@ -12,19 +14,19 @@
       group: root
       mode: '0644'
   - name: Allow password authentication |{{ inventory_hostname }}
-    lineinfile:
+    ansible.builtin.lineinfile:
       path: /etc/ssh/sshd_config
       regexp: "^PasswordAuthentication"
       line: "PasswordAuthentication yes"
       state: present
     notify: restart sshd
   - name: Set authorized key took from file | {{ inventory_hostname }}
-    authorized_key:
+    ansible.posix.authorized_key:
       user: vagrant
       state: present
-      key: "{{ lookup('file', '/home/vagrant/.ssh/id_rsa.pub') }}"
+      key: "{{ lookup('file', '/home//{{ user }}/.ssh/id_rsa.pub') }}"
   - name: Add IP address of all hosts to all hosts | {{ inventory_hostname }}
-    lineinfile:
+    ansible.builtin.lineinfile:
       dest: /etc/hosts
       regexp: '.*{{ item }}$'
       line: "{{ hostvars[item].ansible_host }} {{ item }}"
@@ -34,7 +36,7 @@
   - name: Add IP address of all hosts to all hosts | {{ inventory_hostname }}
     vars:
       ansible_python_interpreter: /usr/bin/python3
-    lineinfile:
+    ansible.builtin.lineinfile:
       dest: /etc/hosts
       regexp: '.*{{ item }}$'
       line: "{{ hostvars[item].ansible_host }} {{ item }}"
@@ -59,9 +61,6 @@
       group: vagrant
   handlers:
   - name: restart sshd
-    service:
+    ansible.builtin.service:
       name: sshd
       state: restarted
-
-
-

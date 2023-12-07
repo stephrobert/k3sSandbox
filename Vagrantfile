@@ -9,8 +9,8 @@ Vagrant.configure(2) do |config|
   number_workers = 2 # Number of workers nodes kubernetes
   cpu_worker = 1
   mem_worker = 1024
-  config.vm.box = "generic/ubuntu2004" # Image for all installations
-  kubectl_version = "1.23.1-00"
+  config.vm.box = "generic/ubuntu2204" # Image for all installations
+  kubectl_version = "1.28.4-00"
 
   nodes = []
   (0..number_workers).each do |i|
