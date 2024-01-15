@@ -1,4 +1,4 @@
-- name: Provision Master(s)
+- name: Deploy K3s on Master(s) Node(s)
   hosts: master
   gather_facts: true
   become: true
@@ -25,10 +25,27 @@
         name:
           - kubectl
         state: present
-    - name: Check that the arkade exists
-      ansible.builtin.stat:
-        path: /usr/local/bin/arkade
-      register: stat_result
+    - name: Create folder for certificates
+      ansible.builtin.file:
+        path: /var/lib/rancher/k3s/server/tls
+        mode: "0755"
+        owner: root
+        group: root
+        state: directory
+    - name: Copy certificates
+      ansible.builtin.copy:
+        dest: /var/lib/rancher/k3s/server/tls/root-ca.pem
+        src: "{{ home }}/.local/share/mkcert/rootCA.pem"
+        owner: root
+        group: root
+        mode: "0644"
+    - name: Copy certificates
+      ansible.builtin.copy:
+        dest: /var/lib/rancher/k3s/server/tls/root-ca.key
+        src: "{{ home }}/.local/share/mkcert/rootCA-key.pem"
+        owner: root
+        group: root
+        mode: "0644"
     - name: Create folder .kube
       ansible.builtin.file:
         dest: /home/vagrant/.kube
@@ -41,7 +58,7 @@
     - name: Install k3s
       become: false
       ansible.builtin.shell:
-        cmd: curl -sfL https://get.k3s.io | sh -
+        cmd: curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.27.9+k3s1" sh -
       when: services['k3s.service'] is not defined
     - name: Check k3s service exist
       ansible.builtin.service_facts:
@@ -76,12 +93,9 @@
         owner: "{{ user }}"
       delegate_to: localhost
       become: false
-    # - name: Debug
-    #   ansible.builtin.debug:
-    #     var: ansible_facts
     - name: Get IP of master node
       ansible.builtin.set_fact:
-        ip: "{{ (ansible_facts.all_ipv4_addresses | select('match', '10.240.0') | list)[0] }}"
+        ip: "{{ (ansible_facts.all_ipv4_addresses | select('match', '192.168.121') | list)[0] }}"
     - name: Change IP conf to .kube/config to localhost
       ansible.builtin.lineinfile:
         path: "{{ home }}/.kube/k3s"

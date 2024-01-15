@@ -1,66 +1,67 @@
 ---
-- hosts: all
-  gather_facts: no
+- name: Provision K3s nodes
+  hosts: all
+  gather_facts: true
   become: true
   vars:
     user: "{{ lookup('env','USER') }}"
   pre_tasks:
-  - name: Replace a localhost entry with our own | {{ inventory_hostname }}
-    ansible.builtin.lineinfile:
-      path: /etc/hosts
-      regexp: '^127\.0\.0\.1'
-      line: 127.0.0.1 localhost
-      owner: root
-      group: root
-      mode: '0644'
-  - name: Allow password authentication |{{ inventory_hostname }}
-    ansible.builtin.lineinfile:
-      path: /etc/ssh/sshd_config
-      regexp: "^PasswordAuthentication"
-      line: "PasswordAuthentication yes"
-      state: present
-    notify: restart sshd
-  - name: Set authorized key took from file | {{ inventory_hostname }}
-    ansible.posix.authorized_key:
-      user: vagrant
-      state: present
-      key: "{{ lookup('file', '/home//{{ user }}/.ssh/id_rsa.pub') }}"
-  - name: Add IP address of all hosts to all hosts | {{ inventory_hostname }}
-    ansible.builtin.lineinfile:
-      dest: /etc/hosts
-      regexp: '.*{{ item }}$'
-      line: "{{ hostvars[item].ansible_host }} {{ item }}"
-      state: present
-    when: hostvars[item].ansible_host is defined
-    with_items: "{{ groups.all }}"
-  - name: Add IP address of all hosts to all hosts | {{ inventory_hostname }}
-    vars:
-      ansible_python_interpreter: /usr/bin/python3
-    ansible.builtin.lineinfile:
-      dest: /etc/hosts
-      regexp: '.*{{ item }}$'
-      line: "{{ hostvars[item].ansible_host }} {{ item }}"
-      state: present
-    when: hostvars[item].ansible_host is defined
-    with_items: "{{ groups.all }}"
-    delegate_to: localhost
-    run_once: true
-  - name: Copy SSH key | {{ inventory_hostname }}
-    ansible.builtin.copy:
-      src: ~/.ssh/id_rsa
-      dest: /home/vagrant/.ssh/id_rsa
-      mode: 0600
-      owner: vagrant
-      group: vagrant
-  - name: Copy SSH config | {{ inventory_hostname }}
-    ansible.builtin.copy:
-      src: ssh-config
-      dest: /home/vagrant/.ssh/config
-      mode: 0600
-      owner: vagrant
-      group: vagrant
+    - name: Replace a localhost entry with our own | {{ inventory_hostname }}
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.0\.1'
+        line: 127.0.0.1 localhost
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Allow password authentication |{{ inventory_hostname }}
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^PasswordAuthentication"
+        line: "PasswordAuthentication yes"
+        state: present
+      notify: Restart sshd
+    - name: Set authorized key took from file | {{ inventory_hostname }}
+      ansible.posix.authorized_key:
+        user: vagrant
+        state: present
+        key: "{{ lookup('file', '/home//{{ user }}/.ssh/id_rsa.pub') }}"
+    - name: Add IP address of all hosts to all hosts | {{ inventory_hostname }}
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        regexp: '.*{{ item }}$'
+        line: "{{ (hostvars[item].all_ipv4_addresses | select('match', '192.168.121') | list)[0] }} {{ item }}"
+        state: present
+      when: hostvars[item].ansible_nodename is defined
+      with_items: "{{ groups.all }}"
+    - name: Add IP address of all hosts to all hosts | {{ inventory_hostname }}
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
+      ansible.builtin.lineinfile:
+        dest: /etc/hosts
+        regexp: '.*{{ item }}$'
+        line: "{{ hostvars[item].ansible_locally_reachable_ips.ipv4[0] }} {{ item }}"
+        state: present
+      when: hostvars[item].ansible_nodename is defined
+      with_items: "{{ groups.all }}"
+      delegate_to: localhost
+      run_once: true
+    - name: Copy SSH key | {{ inventory_hostname }}
+      ansible.builtin.copy:
+        src: ~/.ssh/id_rsa
+        dest: /home/vagrant/.ssh/id_rsa
+        mode: "0600"
+        owner: vagrant
+        group: vagrant
+    - name: Copy SSH config | {{ inventory_hostname }}
+      ansible.builtin.copy:
+        src: ssh-config
+        dest: /home/vagrant/.ssh/config
+        mode: "0600"
+        owner: vagrant
+        group: vagrant
   handlers:
-  - name: restart sshd
-    ansible.builtin.service:
-      name: sshd
-      state: restarted
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: sshd
+        state: restarted

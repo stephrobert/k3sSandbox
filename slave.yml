@@ -1,5 +1,6 @@
-- hosts: workers
-  gather_facts: no
+- name: Deploy K3s on Slave(s) Node(s)
+  hosts: workers
+  gather_facts: true
   become: true
   tasks:
     - name: Check k3s-agent service exist
@@ -13,9 +14,9 @@
       become: false
     - name: Debug
       ansible.builtin.debug:
-        msg: "curl -sfL https://get.k3s.io |  K3S_TOKEN={{ node_token.content | b64decode | trim }} K3S_URL=https://{{ base_ip_str }}.10:6443 sh -"
+        msg: "curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='v1.27.9+k3s1' K3S_TOKEN={{ node_token.content | b64decode | trim }} K3S_URL=https://{{ base_ip_str }}.10:6443 sh -"
     - name: Install k3s
       become: false
       ansible.builtin.shell:
-        cmd: curl -sfL https://get.k3s.io |  K3S_TOKEN={{ node_token.content | b64decode | trim }} K3S_URL=https://{{ base_ip_str }}0:6443 sh -
+        cmd: curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='v1.27.9+k3s1' K3S_TOKEN={{ node_token.content | b64decode | trim }} K3S_URL=https://{{ base_ip_str }}0:6443 sh -
       when: services['k3s-agent.service'] is not defined
