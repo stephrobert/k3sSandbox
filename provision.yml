@@ -30,7 +30,7 @@
       ansible.builtin.lineinfile:
         dest: /etc/hosts
         regexp: '.*{{ item }}$'
-        line: "{{ (hostvars[item].all_ipv4_addresses | select('match', '192.168.121') | list)[0] }} {{ item }}"
+        line: "{{ (hostvars[item].ansible_all_ipv4_addresses | select('match', '192.168.121') | list)[0] }} {{ item }}"
         state: present
       when: hostvars[item].ansible_nodename is defined
       with_items: "{{ groups.all }}"
